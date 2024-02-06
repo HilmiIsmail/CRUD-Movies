@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Pelicula;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -13,6 +14,7 @@ class ShowPeliculas extends Component
     public string $orden = 'desc';
     public string $buscar = "";
 
+    #[On('evento_pelicula_creada')]  //este evento se ejecuta cuando se crea una pelicula, actualiza la lista de las peliculas
     public function render()
     {
         $peliculas = Pelicula::join('categories', 'categories.id', '=', 'category_id')
