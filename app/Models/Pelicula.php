@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Arr;
 
 class Pelicula extends Model
 {
@@ -36,5 +37,15 @@ class Pelicula extends Model
         return Attribute::make(
             set: fn ($v) => ucwords($v),
         );
+    }
+
+    /* eso lo creamos para usarlo en UpdateForm  */
+    public function getTagsId(): array
+    {
+        $tags = [];
+        foreach ($this->etiquetas as $etiqueta) {
+            $tags[] = $etiqueta->id;
+        }
+        return $tags;
     }
 }

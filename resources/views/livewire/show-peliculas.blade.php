@@ -51,18 +51,23 @@
                         <td class="px-6 py-4">
                             {{ $item->nombre }} {{-- nombre -> nombre de la categoria --}}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 cursor-pointer"
+                            wire:click="actualizarDisponibilidad( {{ $item->pid }})">
                             <div class="flex items-center">
                                 <div @class([
-                                    'h-3.5 w-3.5 rounded-full ',
+                                    'h-3.5 w-3.5 rounded-full',
                                     'bg-green-500 me-2' => $item->disponible == 'SI',
                                     'bg-red-500 me-2' => $item->disponible == 'NO',
                                 ])></div> {{ $item->disponible }}
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit
-                                user</a>
+                            <button wire:click="pedirConfirmacion({{ $item->pid }})"> {{-- en ShowPeli hemos dado el nomre pid al id de pelicula --}}
+                                <i class="fas fa-trash text-xl text-red-600"></i>
+                            </button>
+                            <button wire:click="edit({{ $item->pid }})">
+                                <i class="fas fa-edit text-xl text-yellow-600"></i>
+                            </button>
                         </td>
                     </tr>
                 @endforeach
@@ -77,4 +82,96 @@
             No se encontró ningúna película! Modifique los terminos de búsqueda.
         </p>
     @endif
+    {{--  !Ventana modal para actualizar la Pelicula --}}
+    @isset($form->pelicula) {{--  si existe el atributo pelicula en form, muestro el modal // hacemos eso pq hemos enicializado pelicula con null --}}
+        <x-dialog-modal maxWidth='4xl' wire:model="openModalUpdate">
+            <x-slot name="title">
+                Actualizar Película
+            </x-slot>
+            <x-slot name="content">
+                {{-- Formulario --}}
+                <x-label for="titulo">Título</x-label>
+                <x-input type="text" id="titulo" class="w-full mb-3" placeholder="Título..."
+                    wire:model="form.titulo" />
+                <x-input-error for="form.titulo"></x-input-error>
+
+                {{-- SINOPSIS --}}
+                <x-label for="sinopsis">Sinopsis</x-label>
+                <textarea class="w-full mb-3" name="sinopsis" id="sinopsis" placeholder="Sinopsis..." wire:model="form.sinopsis"></textarea>
+                <x-input-error for="form.sinopsis"></x-input-error>
+
+                {{-- CATEGORIAS --}}
+                <x-label for="category_id">Título</x-label>
+                <select class="w-full mb-3" id="category_id" wire:model="form.category_id">
+                    <option>Selecciones una categoria...</option>
+                    @foreach ($categorias as $categoria)
+                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                    @endforeach
+                </select>
+                <x-input-error for="form.category_id"></x-input-error>
+
+                {{-- DISPONIBLE --}}
+                <x-label for="disponible">Disponible</x-label>
+                <div class="flex items-center mb-3">
+                    <input id="disponible" type="checkbox" value="SI" wire:model="form.disponible"
+                        @checked($form->disponible == 'SI')
+                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="disponible" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">SI</label>
+                </div>
+                <x-input-error for="form.disponible"></x-input-error>
+
+                {{-- TAGS --}}
+                <x-label for="etiqueta">Etiquetas</x-label>
+                <div class="flex mb-3">
+                    @foreach ($etiquetas as $etiqueta)
+                        <div class="flex items-center me-4">
+                            <input id="{{ $etiqueta->nombre }}" type="checkbox" value="{{ $etiqueta->id }}"
+                                wire:model="form.etiquetas_id"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="{{ $etiqueta->nombre }}"
+                                class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                <p class="px-1 py-1 rounded-lg" style="background-color: {{ $etiqueta->color }}">
+                                    {{ $etiqueta->nombre }}</p>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                <x-input-error for="form.etiquetas_id"></x-input-error>
+
+                {{-- CARATULA --}}
+                <x-label for="imagenU">Imagen</x-label>
+                <div class="w-full h-96 bg-gray-200 relative">
+                    @if ($form->imagen)
+                        <img src="{{ $form->imagen->temporaryUrl() }}"
+                            class="w-full h-full bg-center bg-cover bg-no-repeat">
+                    @else
+                        <img src="{{ Storage::url($form->pelicula->caratula) }}"
+                            class="w-full h-full bg-center bg-cover bg-no-repeat">
+                    @endif
+                    <input type="file" accept="image/" hidden id="imagenU" wire:model="form.imagen"
+                        wire:loading.attr="disabled" {{-- para que no se active el boton mientras carga la imagen --}} />
+                    <label for="imagenC"
+                        class="absolute bottom-2 right-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ">
+                        <i class="fa-solid fa-cloud-arrow-up mr-2"></i>SUBIR
+                    </label>
+                </div>
+                <x-input-error for="form.imagen"></x-input-error>
+            </x-slot>
+            <x-slot name="footer">
+                {{-- Botones --}}
+                <div class="flex flex-row-reverse">
+                    <button wire:click="update" wire:loading.attr="disabled" {{--  disabled mientras se esta cargando --}}
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        <i class="fas fa-edit"></i> EDITAR
+                    </button>
+                    <button wire:click="cancelarUpdate"
+                        class="mr-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                        <i class="fas fa-xmark"></i> CANCELAR
+                    </button>
+                </div>
+            </x-slot>
+        </x-dialog-modal>
+    @endisset
+
+    {{--  !Fin de Ventana modal para actualizar la Pelicula --}}
 </x-propios.principal>
